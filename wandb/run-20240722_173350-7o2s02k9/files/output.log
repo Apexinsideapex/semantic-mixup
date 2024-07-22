@@ -1,0 +1,14 @@
+/home/lunet/cors13/.conda/envs/final_diss/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/lunet/cors13/.conda/envs/final_diss/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet18_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Epoch 1/5 - Train Loss: 4.8926, Train Acc: 6.75%, Val Loss: 3.8404, Val Acc: 23.25%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth
+Epoch 2/5 - Train Loss: 3.6811, Train Acc: 26.62%, Val Loss: 2.7168, Val Acc: 44.52%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth
+Epoch 3/5 - Train Loss: 2.9644, Train Acc: 40.73%, Val Loss: 2.1119, Val Acc: 54.68%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth
+Epoch 4/5 - Train Loss: 2.4918, Train Acc: 49.50%, Val Loss: 1.7672, Val Acc: 60.87%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth
+Epoch 5/5 - Train Loss: 2.1748, Train Acc: 55.04%, Val Loss: 1.5125, Val Acc: 66.39%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth

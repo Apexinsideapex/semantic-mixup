@@ -1,0 +1,16 @@
+/home/lunet/cors13/.conda/envs/final_diss/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/lunet/cors13/.conda/envs/final_diss/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet18_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Epoch 1/100 - Train Loss: 4.8923, Train Acc: 6.84%, Val Loss: 3.8438, Val Acc: 23.17%
+New best model saved to ./base_models/best_models/resnet18_cub200_best.pth
+Traceback (most recent call last):
+  File "/home/lunet/cors13/Final_Diss/semantic-mixup/train.py", line 125, in <module>
+    main()
+  File "/home/lunet/cors13/Final_Diss/semantic-mixup/train.py", line 110, in main
+    train_loss, train_acc = train(model, train_loader, optimizer, criterion, device, Config.USE_CUTMIX)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lunet/cors13/Final_Diss/semantic-mixup/train.py", line 36, in train
+    running_loss += loss.item()
+                    ^^^^^^^^^^^
+KeyboardInterrupt

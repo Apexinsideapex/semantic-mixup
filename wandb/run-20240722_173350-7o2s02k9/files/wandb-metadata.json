@@ -1,0 +1,88 @@
+{
+    "os": "Linux-6.5.0-44-generic-x86_64-with-glibc2.35",
+    "python": "3.11.5",
+    "heartbeatAt": "2024-07-22T16:33:51.421822",
+    "startedAt": "2024-07-22T16:33:50.939163",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/lunet/cors13/Final_Diss/semantic-mixup/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/Apexinsideapex/semantic-mixup.git",
+        "commit": "bb52ccceb66a89eb42b83c1c581a0c67fab2e7b5"
+    },
+    "email": null,
+    "root": "/home/lunet/cors13/Final_Diss/semantic-mixup",
+    "host": "lnx-n109-19.lunet.lboro.ac.uk",
+    "username": "cors13",
+    "executable": "/home/lunet/cors13/.conda/envs/final_diss/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3.94075,
+        "min": 800.0,
+        "max": 4700.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4.465,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4.402,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 3.964,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4.609,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4.42,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4.409,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4.457,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 4700.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 915.3477020263672,
+            "used": 799.3428077697754
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 2080 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 2080 Ti",
+            "memory_total": 11811160064
+        }
+    ],
+    "memory": {
+        "total": 62.63743209838867
+    }
+}
