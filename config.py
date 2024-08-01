@@ -25,9 +25,9 @@ class Config:
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./base_models"
+    EXPERIMENT_DIR = "./base_models_cutmix"
 
     # Augmentation
-    USE_CUTMIX = False
+    USE_CUTMIX = True
     CUTMIX_ALPHA = 1.0
     CUTMIX_PROB = 0.5

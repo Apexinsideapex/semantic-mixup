@@ -23,7 +23,6 @@ class CutMix(object):
         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (images.size()[-1] * images.size()[-2]))
 
         return images, (labels, labels[rand_index], lam)
-
     def rand_bbox(self, size, lam):
         W = size[2]
         H = size[3]

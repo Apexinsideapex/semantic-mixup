@@ -18,14 +18,21 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix):
 
     for batch_idx, batch in enumerate(train_loader):
         if use_cutmix:
-            inputs, (targets_a, targets_b, lam) = [x.to(device) for x in batch]
+            inputs, targets = batch
+            inputs = inputs.to(device)
+            if isinstance(targets, tuple):
+                targets_a, targets_b, lam = targets
+                targets_a, targets_b = targets_a.to(device), targets_b.to(device)
+            else:
+                targets = targets.to(device)
         else:
-            inputs, targets = [x.to(device) for x in batch]
+            inputs, targets = batch
+            inputs, targets = inputs.to(device), targets.to(device)
 
         optimizer.zero_grad()
         outputs = model(inputs)
 
-        if use_cutmix:
+        if use_cutmix and isinstance(targets, tuple):
             loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         else:
             loss = criterion(outputs, targets)
@@ -36,7 +43,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix):
         running_loss += loss.item()
         _, predicted = outputs.max(1)
         
-        if use_cutmix:
+        if use_cutmix and isinstance(targets, tuple):
             total += targets_a.size(0)
             correct += (lam * predicted.eq(targets_a).sum().float()
                         + (1 - lam) * predicted.eq(targets_b).sum().float())
@@ -86,7 +93,7 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}"
+            experiment_name = f"{model_name}_{dataset_name}_cutmix"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
