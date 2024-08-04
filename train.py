@@ -35,7 +35,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
             if isinstance(targets, tuple):
                 targets_a, targets_b, lam = targets
                 targets_a, targets_b = targets_a.to(device), targets_b.to(device)
-                lam = np.mean(lam)
+                # lam = np.mean(lam)
             else:
                 targets = targets.to(device)
         else:
