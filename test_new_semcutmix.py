@@ -30,43 +30,63 @@ class SemCutMix:
             thresh = np.random.random_sample(size=None)
             bbox1 = get_bbox(images[i], thresh, self.model)
             bbox2 = get_bbox(images[rand_index[i]], thresh, self.model)
+            mask1 = get_mask(images[i], thresh, self.model)
+            mask2 = get_mask(images[rand_index[i]], thresh, self.model)
 
-            # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+            mixed_images[i] = mixed_images[i]*(mask1>thresh) + mixed_images[rand_index[i]]*(mask2<thresh)
+
+            lam = thresh
+
+            # # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
             
-            # # Display original image
-            # ax1.imshow(images[i].permute(1, 2, 0))
-            # ax1.set_title(f'Original Image (Class: {dataset.classes[labels[i]]})')
-            # ax1.axis('off')
+            # # # Display original image
+            # # ax1.imshow(images[i].permute(1, 2, 0))
+            # # ax1.set_title(f'Original Image (Class: {dataset.classes[labels[i]]})')
+            # # ax1.axis('off')
             
-            # # Display mixed image
-            # ax2.imshow(images[rand_index[i]].permute(1, 2, 0))
-            # ax2.set_title(f'SemCutMix Image (λ =)')
-            # ax2.axis('off')
+            # # # Display mixed image
+            # # ax2.imshow(images[rand_index[i]].permute(1, 2, 0))
+            # # ax2.set_title(f'SemCutMix Image (λ =)')
+            # # ax2.axis('off')
             
-            # plt.tight_layout()
-            # plt.show()
+            # # plt.tight_layout()
+            # # plt.show()
             
-            x1, y1, x2, y2 = bbox1
-            x1_2, y1_2, x2_2, y2_2 = bbox2
+            # x1, y1, x2, y2 = bbox1
+            # x1_2, y1_2, x2_2, y2_2 = bbox2
             
-            width1, height1 = x2 - x1, y2 - y1
-            width2, height2 = x2_2 - x1_2, y2_2 - y1_2
+            # width1, height1 = x2 - x1, y2 - y1
+            # width2, height2 = x2_2 - x1_2, y2_2 - y1_2
             
-            if width1 > width2 or height1 > height2:
-                scale = min(width2 / width1, height2 / height1)
-                new_width, new_height = int(width1 * scale), int(height1 * scale)
-                x2, y2 = x1 + new_width, y1 + new_height
+            # if width1 > width2 or height1 > height2:
+            #     scale = min(width2 / width1, height2 / height1)
+            #     new_width, new_height = int(width1 * scale), int(height1 * scale)
+            #     x2, y2 = x1 + new_width, y1 + new_height
             
-            mixed_images[i][:, y1_2:y1_2+y2-y1, x1_2:x1_2+x2-x1] = images[rand_index[i]][:, y1:y2, x1:x2]
+            # mixed_images[i][:, y1_2:y1_2+y2-y1, x1_2:x1_2+x2-x1] = images[rand_index[i]][:, y1:y2, x1:x2]
             
-            bbox_area = (x2 - x1) * (y2 - y1)
-            total_area = images[i].shape[1] * images[i].shape[2]
-            lam = bbox_area / total_area
+            # bbox_area = (x2 - x1) * (y2 - y1)
+            # total_area = images[i].shape[1] * images[i].shape[2]
+            # lam = bbox_area / total_area
 
             # mixed_images[i] = lam * mixed_images[i] + (1 - lam) * images[rand_index[i]]
 
             
         return mixed_images, (labels, labels[rand_index], lam)
+
+def get_mask(img, threshold, model):
+    input_tensor = normalize(resize(img, (224, 224)), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    
+    with SmoothGradCAMpp(model, model.target_layer) as cam_extractor:
+        out = model(input_tensor.unsqueeze(0))
+        activation_map = cam_extractor(out.squeeze(0).argmax().item(), out)
+    
+    mask = to_pil_image(activation_map[0].squeeze(0), mode='F')
+    overlay = mask.resize((img.shape[2], img.shape[1]))
+    overlay = np.array(overlay)
+    
+    return overlay
+
 
 def get_bbox(img, threshold, model):
     input_tensor = normalize(resize(img, (224, 224)), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -140,7 +160,7 @@ if __name__ == "__main__":
     model.eval()
 
     # Set up SemCutMix
-    semcutmix = SemCutMix(model, alpha=1.0, prob=1.0, threshold=0.7)
+    semcutmix = SemCutMix(model, alpha=1.0, prob=1.0, threshold=0.8)
 
     transform = transforms.Compose([
         transforms.Resize((224, 224)),

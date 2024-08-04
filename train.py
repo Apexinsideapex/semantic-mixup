@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import wandb
 from tqdm import tqdm
+import numpy as np
 
 from config import Config
 from data.datasets import DatasetFactory, get_dataloader_cutmix, get_dataloader_semcutmix
@@ -16,9 +17,9 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
     correct = 0
     total = 0
     # Hard code GPU
-    device = torch.device("cuda")
-    use_cutmix = Config.USE_CUTMIX
-    use_semcutmix = Config.USE_SEMCUTMIX
+    # device = torch.device("cuda")
+    # use_cutmix = Config.USE_CUTMIX
+    # use_semcutmix = Config.USE_SEMCUTMIX
     for batch_idx, batch in enumerate(train_loader):
         if use_cutmix:
             inputs, targets = batch
@@ -34,6 +35,9 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
             if isinstance(targets, tuple):
                 targets_a, targets_b, lam = targets
                 targets_a, targets_b = targets_a.to(device), targets_b.to(device)
+                lam = np.mean(lam)
+            else:
+                targets = targets.to(device)
         else:
             inputs, targets = batch
             inputs, targets = inputs.to(device), targets.to(device)
@@ -111,12 +115,18 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}_semcutmix_64_new"
+            experiment_name = f"{model_name}_{dataset_name}_semcutmix_base_64_transfer_fixed"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
             train_dataset = DatasetFactory.get_dataset(dataset_name, train=True)
             val_dataset = DatasetFactory.get_dataset(dataset_name, train=False)
+            num_classes = len(train_dataset.classes)
+            model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+            if Config.USE_SEMCUTMIX:
+                model = ModelFactory.load_trained_model(model_name, num_classes, model_path).to(device)
+            else:
+                model = ModelFactory.get_model(model_name, num_classes).to(device)
             if Config.USE_CUTMIX:
                 train_loader = get_dataloader_cutmix(train_dataset, Config.BATCH_SIZE, Config.NUM_WORKERS, 
                                             use_cutmix=Config.USE_CUTMIX, 
@@ -125,7 +135,9 @@ def main():
             elif Config.USE_SEMCUTMIX:
                 train_loader = get_dataloader_semcutmix(train_dataset, Config.BATCH_SIZE, Config.NUM_WORKERS, 
                                             use_semcutmix=Config.USE_SEMCUTMIX, 
-                                            semcutmix_alpha=Config.SEMCUTMIX_ALPHA, 
+                                            semcutmix_alpha=Config.SEMCUTMIX_ALPHA,
+                                            model=model_name,
+                                            dataset_name=dataset_name, 
                                             semcutmix_prob=Config.SEMCUTMIX_PROB, 
                                             semcutmix_threshold=Config.SEMCUTMIX_THRESHOLD)
             else:
@@ -133,12 +145,7 @@ def main():
             val_loader = get_dataloader_cutmix(val_dataset, Config.BATCH_SIZE, Config.NUM_WORKERS, shuffle=False)
 
 
-            num_classes = len(train_dataset.classes)
-            model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
-            if Config.USE_SEMCUTMIX:
-                model = ModelFactory.load_trained_model(model_name, num_classes, model_path).to(device)
-            else:
-                model = ModelFactory.get_model(model_name, num_classes).to(device)
+            
 
             criterion = nn.CrossEntropyLoss()
             optimizer = optim.SGD(model.parameters(), lr=Config.LEARNING_RATE, momentum=Config.MOMENTUM, weight_decay=Config.WEIGHT_DECAY)
@@ -159,10 +166,11 @@ def main():
                     print(f"New best model saved to {best_model_path}")
                     early_stopping_counter = 0
                 else:
-                    early_stopping_counter += 1
-                    if early_stopping_counter >= Config.PATIENCE and epoch >= Config.WARM_UP_EPOCHS:
-                        print("Early stopping triggered!")
-                        break
+                    if epoch >= Config.WARM_UP_EPOCHS:
+                        early_stopping_counter += 1
+                        if early_stopping_counter >= Config.PATIENCE :
+                            print("Early stopping triggered!")
+                            break
                 
 
             wandb.finish()

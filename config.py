@@ -28,12 +28,12 @@ class Config:
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./base_models_64"
+    EXPERIMENT_DIR = "./semcutmix_models_tranfer_base_64_fixed"
 
     # Augmentation
     USE_CUTMIX = False
     CUTMIX_ALPHA = 1.0
-    CUTMIX_PROB = 0.5
+    CUTMIX_PROB = 1.0
 
     USE_SEMCUTMIX = True
     SEMCUTMIX_ALPHA = 1.0
