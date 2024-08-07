@@ -12,7 +12,7 @@ class Config:
     
     # Model
     # MODELS = ["resnet18", "vgg16"]
-    MODELS = ['resnet50', 'vgg19']
+    MODELS = ['efficientnetv2', 'resnet50', 'vgg19']
     DATASETS = ["cub200", "stanford_dogs", "cifar10"]
     # MODELS = ["resnet18"]
     # DATASETS = ["cub200"]
@@ -31,7 +31,7 @@ class Config:
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./new_cutmix_models_b64"
+    EXPERIMENT_DIR = "./base_models_b64"
 
     # Augmentation
     USE_CUTMIX = False
