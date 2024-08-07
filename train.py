@@ -10,6 +10,7 @@ from config import Config
 from data.datasets import DatasetFactory, get_dataloader_cutmix, get_dataloader_semcutmix
 from models.models import ModelFactory
 from utils.utils import set_seed, accuracy
+import time
 
 def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_semcutmix):
     model.train()
@@ -20,6 +21,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
     # device = torch.device("cuda")
     # use_cutmix = Config.USE_CUTMIX
     # use_semcutmix = Config.USE_SEMCUTMIX
+    epoch_start_time = time.time()
     for batch_idx, batch in enumerate(train_loader):
         if use_cutmix:
             inputs, targets = batch
@@ -51,6 +53,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
         if use_cutmix and isinstance(targets, tuple):
             loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         elif use_semcutmix and isinstance(targets, tuple):
+            print(f"Loss to targets_a = {criterion(outputs, targets_a)} and Loss to targets B = {criterion(outputs, targets_b)}")
             loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         else:
             loss = criterion(outputs, targets)
@@ -79,7 +82,10 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
                 "train_acc": 100. * correct / total
             })
 
-    return running_loss / len(train_loader), 100. * correct / total
+    epoch_end_time = time.time()  # End timing the epoch
+    epoch_duration = epoch_end_time - epoch_start_time
+
+    return running_loss / len(train_loader), 100. * correct / total, epoch_duration
 
 def validate(model, val_loader, criterion, device):
     model.eval()
@@ -115,7 +121,7 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}_semcutmix_base_64_transfer_fixed"
+            experiment_name = f"{model_name}_{dataset_name}_new_cutmix_b64"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
@@ -124,6 +130,7 @@ def main():
             num_classes = len(train_dataset.classes)
             model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
             if Config.USE_SEMCUTMIX:
+                print(f"Loading Pre Trained mode = {model_path}")
                 model = ModelFactory.load_trained_model(model_name, num_classes, model_path).to(device)
             else:
                 model = ModelFactory.get_model(model_name, num_classes).to(device)
@@ -153,10 +160,10 @@ def main():
             best_val_acc = 0.0
             early_stopping_counter = 0
             for epoch in range(Config.EPOCHS):
-                train_loss, train_acc = train(model, train_loader, optimizer, criterion, device, Config.USE_CUTMIX, Config.USE_SEMCUTMIX)
+                train_loss, train_acc, epoch_duration = train(model, train_loader, optimizer, criterion, device, Config.USE_CUTMIX, Config.USE_SEMCUTMIX)
                 val_loss, val_acc = validate(model, val_loader, criterion, device)
 
-                print(f"Epoch {epoch+1}/{Config.EPOCHS} - Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
+                print(f"Epoch {epoch+1}/{Config.EPOCHS} - Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%, Epoch Duration: {epoch_duration:.2f} seconds")
 
                 # Save the best model
                 if val_acc > best_val_acc:

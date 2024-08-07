@@ -11,8 +11,11 @@ class Config:
     NUM_WORKERS = 8
     
     # Model
-    MODELS = ["resnet18", "vgg16"]
+    # MODELS = ["resnet18", "vgg16"]
+    MODELS = ['resnet50', 'vgg19']
     DATASETS = ["cub200", "stanford_dogs", "cifar10"]
+    # MODELS = ["resnet18"]
+    # DATASETS = ["cub200"]
     # DATASETS = ["cifar10"]
     
     # Training
@@ -28,14 +31,14 @@ class Config:
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./semcutmix_models_tranfer_base_64_fixed"
+    EXPERIMENT_DIR = "./new_cutmix_models_b64"
 
     # Augmentation
     USE_CUTMIX = False
     CUTMIX_ALPHA = 1.0
-    CUTMIX_PROB = 1.0
+    CUTMIX_PROB = 0.5
 
-    USE_SEMCUTMIX = True
+    USE_SEMCUTMIX = False
     SEMCUTMIX_ALPHA = 1.0
     SEMCUTMIX_PROB = 0.5
     SEMCUTMIX_THRESHOLD = 0.8
