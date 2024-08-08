@@ -62,9 +62,18 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     if model_name == 'resnet18':
         model = torchvision.models.resnet18(weights='DEFAULT')
         model.target_layer = 'layer4'
+    elif model_name == 'resnet50':
+        model = torchvision.models.resnet50(weights='DEFAULT')
+        model.target_layer = 'layer4'
     elif model_name == 'vgg16':
         model = torchvision.models.vgg16(weights='DEFAULT')
-        model.target_layer = 'avgpool'
+        model.target_layer = 'features'
+    elif model_name == 'vgg19':
+        model = torchvision.models.vgg19(weights='DEFAULT')
+        model.target_layer = 'features'
+    elif model_name == 'efficientnetv2':
+        model = torchvision.models.efficientnet_v2_s(weights='DEFAULT')
+        model.target_layer = 'features'
     else:
         raise ValueError(f"Unknown model: {model_name}")
 
@@ -77,12 +86,15 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
-    if model_name == 'resnet18':
+    if model_name in ['resnet18', 'resnet50']:
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, num_classes)
-    elif model_name == 'vgg16':
+    elif model_name in ['vgg16', 'vgg19']:
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = torch.nn.Linear(num_ftrs, num_classes)
+    elif model_name == 'efficientnetv2':
+        num_ftrs = model.classifier[1].in_features
+        model.classifier[1] = torch.nn.Linear(num_ftrs, num_classes)
     
     model.eval()
     

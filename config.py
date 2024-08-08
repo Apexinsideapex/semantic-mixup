@@ -12,7 +12,7 @@ class Config:
     
     # Model
     # MODELS = ["resnet18", "vgg16"]
-    MODELS = ['efficientnetv2', 'resnet50', 'vgg19']
+    MODELS = ['efficientnetv2', 'resnet50']
     DATASETS = ["cub200", "stanford_dogs", "cifar10"]
     # MODELS = ["resnet18"]
     # DATASETS = ["cub200"]
@@ -31,14 +31,14 @@ class Config:
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./base_models_b64"
+    EXPERIMENT_DIR = "./semcutmix_optim_64"
 
     # Augmentation
     USE_CUTMIX = False
     CUTMIX_ALPHA = 1.0
     CUTMIX_PROB = 0.5
 
-    USE_SEMCUTMIX = False
+    USE_SEMCUTMIX = True
     SEMCUTMIX_ALPHA = 1.0
     SEMCUTMIX_PROB = 0.5
     SEMCUTMIX_THRESHOLD = 0.8
