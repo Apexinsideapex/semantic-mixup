@@ -191,20 +191,25 @@ class SemCutMix:
         self.rng = np.random.RandomState(seed)
         self.call_count = 0
         
-    def __call__(self, batch):
+    def __call__(self, batch_idx, batch):
         images, labels = batch
         rand_num = self.rng.rand()
         if rand_num > self.prob:
-            print("Not using SemCutMix for this ", str(rand_num))
+            # print("Not using SemCutMix for this ", str(rand_num))
             return images, labels
-        print("Using SemCutMix for this ", str(rand_num))
+        # print("Using SemCutMix for this ", str(rand_num))
         batch_size = len(images)
         rand_index = torch.from_numpy(self.rng.permutation(batch_size))
         mixed_images = images.clone()
         
         # Get all bboxes for the batch at once
-        bboxes1 = self.get_batch_bboxes(images)
-        bboxes2 = self.get_batch_bboxes(images[rand_index])
+        if batch_idx not in self.cached_bboxes.keys():
+            print(f"Generating bbox for {batch_idx}")
+            bboxes1 = self.get_batch_bboxes(batch_idx, images)
+        else:
+            print(f"Not generating bbox for {batch_idx}")
+            bboxes1 = self.cached_bboxes[batch_idx]
+        # bboxes2 = self.get_batch_bboxes(images[rand_index])
         
         # Vectorize the mixing operation
         masks = torch.ones_like(images)
@@ -224,26 +229,14 @@ class SemCutMix:
             save_image(img, save_path)
         self.image_count += len(mixed_images)
 
-    def get_batch_bboxes(self, images):
+    def get_batch_bboxes(self, batch_idx, images):
         batch_size = len(images)
         bboxes = []
         for i in range(batch_size):
             bbox = self.get_bbox(images[i])
             bboxes.append(bbox)
+        self.cached_bboxes[batch_idx] = bboxes
         return bboxes
-
-    def hash_image(self, img, index):
-        # Use a combination of image statistics and position for hashing
-        mean = img.mean().item()
-        std = img.std().item()
-        max_val = img.max().item()
-        min_val = img.min().item()
-        
-        # Combine image stats with position and call count
-        hash_input = f"{mean:.4f}_{std:.4f}_{max_val:.4f}_{min_val:.4f}_{index}_{self.call_count}"
-        
-        # Use SHA256 for a more robust hash
-        return hashlib.sha256(hash_input.encode()).hexdigest()
     
     def get_bbox(self, img):
         input_tensor = normalize(resize(img, (224, 224)) / 255., [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).to('cuda')
@@ -365,10 +358,8 @@ class SemCutMixLoader:
         self.semcutmix = SemCutMix(model, alpha, prob, threshold, dataset_name)
 
     def __iter__(self):
-        for batch in self.loader:
-            self.semcutmix.cached_bboxes.clear() 
-            self.semcutmix.call_count = 0
-            yield self.semcutmix(batch)
+        for batch_idx, batch in enumerate(self.loader):
+            yield self.semcutmix(batch_idx, batch)
 
     def __len__(self):
         return len(self.loader)
