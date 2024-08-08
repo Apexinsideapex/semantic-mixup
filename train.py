@@ -53,7 +53,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
         if use_cutmix and isinstance(targets, tuple):
             loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         elif use_semcutmix and isinstance(targets, tuple):
-            print(f"Loss to targets_a = {criterion(outputs, targets_a)} and Loss to targets B = {criterion(outputs, targets_b)}")
+            # print(f"Loss to targets_a = {criterion(outputs, targets_a)} and Loss to targets B = {criterion(outputs, targets_b)}")
             loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         else:
             loss = criterion(outputs, targets)
@@ -121,14 +121,18 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}_new_b64"
+            experiment_name = f"{model_name}_{dataset_name}_semcutmix_optim_b64"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
             train_dataset = DatasetFactory.get_dataset(dataset_name, train=True)
             val_dataset = DatasetFactory.get_dataset(dataset_name, train=False)
             num_classes = len(train_dataset.classes)
-            model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+            if model_name in ['resnet18', 'vgg16']:
+                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+            else:
+                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+
             if Config.USE_SEMCUTMIX:
                 print(f"Loading Pre Trained mode = {model_path}")
                 model = ModelFactory.load_trained_model(model_name, num_classes, model_path).to(device)

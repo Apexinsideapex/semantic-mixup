@@ -99,11 +99,15 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     model.eval()
     
     # Load best model weights
-    if use_cutmix:
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
+    # if use_cutmix:
+    #     model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
+    # else:
+    #     model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
+    if model_name in ['resnet18', 'vgg16']:
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
     else:
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
-    
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+
     model.load_state_dict(torch.load(model_path))
     return model
 
@@ -216,10 +220,10 @@ class SemCutMix:
         
         # Get all bboxes for the batch at once
         if batch_idx not in self.cached_bboxes.keys():
-            print(f"Generating bbox for {batch_idx}")
+            # print(f"Generating bbox for {batch_idx}")
             bboxes1 = self.get_batch_bboxes(batch_idx, images)
         else:
-            print(f"Not generating bbox for {batch_idx}")
+            # print(f"Not generating bbox for {batch_idx}")
             bboxes1 = self.cached_bboxes[batch_idx]
         # bboxes2 = self.get_batch_bboxes(images[rand_index])
         
