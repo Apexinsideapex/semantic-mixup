@@ -121,7 +121,7 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}_semcutmix_optim_b64"
+            experiment_name = f"{model_name}_{dataset_name}_semcutmix_cutmix_transfer"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 

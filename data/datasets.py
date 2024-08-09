@@ -104,9 +104,11 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     # else:
     #     model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
     if model_name in ['resnet18', 'vgg16']:
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
     else:
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
 
     model.load_state_dict(torch.load(model_path))
     return model
@@ -226,17 +228,37 @@ class SemCutMix:
             # print(f"Not generating bbox for {batch_idx}")
             bboxes1 = self.cached_bboxes[batch_idx]
         # bboxes2 = self.get_batch_bboxes(images[rand_index])
-        
+        bboxes2 = [self.cached_bboxes[batch_idx][idx] for idx in rand_index]
+        # print(bboxes1)
+        # print(bboxes2)
+        # raise ValueError("Not implemented")
         # Vectorize the mixing operation
-        masks = torch.ones_like(images)
-        for i in range(batch_size):
-            x1, y1, x2, y2 = bboxes1[i]
-            masks[i, :, y1:y2, x1:x2] = 0
+        # masks = torch.ones_like(images)
+        # masks2 = torch.ones_like(images)
+        # for i in range(batch_size):
+        #     x1, y1, x2, y2 = bboxes1[i]
+        #     masks[i, :, y1:y2, x1:x2] = 0
+        # for i in range(bboxes2):
+        #     x1, y1, x2, y2 = bboxes2[i]
+        #     masks2[i, :, y1:y2, x1:x2] = 0
         
-        mixed_images = mixed_images * masks + images[rand_index] * (1 - masks)
+
+        # mixed_images = mixed_images * masks + images[rand_index] * (1 - masks2)
+        for i in range(batch_size):
+            x1_1, y1_1, x2_1, y2_1 = bboxes1[i]
+            x1_2, y1_2, x2_2, y2_2 = bboxes2[i]
+
+            # Extract content from bbox1 in image1
+            content_bbox1 = images[i, :, y1_1:y2_1, x1_1:x2_1]
+
+            # Ensure the content fits into bbox2
+            content_bbox1_resized = torch.nn.functional.interpolate(content_bbox1.unsqueeze(0), size=(y2_2 - y1_2, x2_2 - x1_2), mode='bilinear', align_corners=False).squeeze(0)
+
+            # Place the content into bbox2 in image2
+            mixed_images[rand_index[i], :, y1_2:y2_2, x1_2:x2_2] = content_bbox1_resized
         
         # self.save_mixed_images(mixed_images)
-
+        # raise ValueError("Not implemented")
         return mixed_images, (labels, labels[rand_index], self.threshold)
     
     def save_mixed_images(self, mixed_images):

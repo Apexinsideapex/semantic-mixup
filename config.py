@@ -12,10 +12,10 @@ class Config:
     
     # Model
     # MODELS = ["resnet18", "vgg16"]
-    MODELS = ['efficientnetv2', 'resnet50']
-    DATASETS = ["cub200", "stanford_dogs", "cifar10"]
-    # MODELS = ["resnet18"]
-    # DATASETS = ["cub200"]
+    # MODELS = ['efficientnetv2', 'resnet50']
+    # DATASETS = ["cub200", "stanford_dogs", "cifar10"]
+    MODELS = ["resnet18"]
+    DATASETS = ["cub200"]
     # DATASETS = ["cifar10"]
     
     # Training
@@ -41,4 +41,4 @@ class Config:
     USE_SEMCUTMIX = True
     SEMCUTMIX_ALPHA = 1.0
     SEMCUTMIX_PROB = 0.5
-    SEMCUTMIX_THRESHOLD = 0.8
+    SEMCUTMIX_THRESHOLD = 0.5
