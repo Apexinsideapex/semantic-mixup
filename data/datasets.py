@@ -108,7 +108,7 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
         model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
     else:
         # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_cutmix_b64_best.pth'
 
     model.load_state_dict(torch.load(model_path))
     return model
@@ -117,46 +117,90 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
 
 
 class SemMixUp:
-    def __init__(self, model, alpha, prob, threshold):
-        self.model = model
+    def __init__(self, model, alpha, prob, threshold, dataset_name, save_dir='test_semmixed_images'):
+        self.model = initialize_model(model_name=model, dataset_name=dataset_name, use_cutmix=False).to('cuda')
         self.alpha = alpha
         self.prob = prob
         self.threshold = threshold
-
-    def __call__(self, batch):
-        images, labels = batch
-        if np.random.rand() > self.prob:
-            return images, labels
+        self.cam_extractor = SmoothGradCAMpp(self.model, self.model.target_layer)
+        self.cached_bboxes = {}
+        self.save_dir = save_dir
+        self.image_count = 0
+        self.rng = np.random.RandomState(seed)
+        self.call_count = 0
         
+    def __call__(self, batch_idx, batch):
+        images, labels = batch
+        rand_num = self.rng.rand()
+        if rand_num > self.prob:
+            return images, labels
+
         batch_size = len(images)
-        rand_index = torch.randperm(batch_size)
-
+        rand_index = torch.from_numpy(self.rng.permutation(batch_size))
         mixed_images = images.clone()
-        thresh = self.threshold
+        
+        # Get all bboxes for the batch at once
+        if batch_idx not in self.cached_bboxes.keys():
+            # print(f"Generating bbox for {batch_idx}")
+            overlays = self.get_batch_maps(batch_idx, images)[0]
+        else:
+            # print(f"Not generating bbox for {batch_idx}")
+            overlays = self.cached_bboxes[batch_idx][0]
+
+        # print(overlays)
+        # overlays = torch.tensor(overlays)
+        # print(overlays)
+        overlays = (overlays > 0.3).float()
+        overlays2 = 1 - overlays
+
+        # overlays.to('cuda')
+        # overlays2.to('cuda')
+        # mixed_images.to('cuda')
+        # images.to('cuda')
+        
+
+        mixed_images = mixed_images.to('cuda') * overlays.to('cuda') + images[rand_index].to('cuda') * overlays2.to('cuda')
+
+
+        # self.save_mixed_images(mixed_images)
+        # raise ValueError("Not implemented")
+        return mixed_images, (labels, labels[rand_index], [0.5] * batch_size)
+    
+    def save_mixed_images(self, mixed_images):
+        for i, img in enumerate(mixed_images):
+            save_path = os.path.join(self.save_dir, f'semmixed_image_{self.image_count + i}.png')
+            save_image(img, save_path)
+        self.image_count += len(mixed_images)
+
+    def get_batch_maps(self, batch_idx, images):
+        batch_size = len(images)
+        bboxes = []
         for i in range(batch_size):
-
-            mask1 = get_mask(images[i], thresh, self.model)
-            mask2 = get_mask(images[rand_index[i]], thresh, self.model)
-
-            mixed_images[i] = mixed_images[i]*(mask1>thresh) + mixed_images[rand_index[i]]*(mask2<thresh)
-
-        lam = thresh
-
-        return mixed_images, (labels, labels[rand_index], lam)
-
-def get_mask(img, threshold, model):
-    input_tensor = normalize(resize(img, (224, 224)), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            bbox = self.get_bbox(images[i])
+            bboxes.append(bbox)
+        self.cached_bboxes[batch_idx] = bboxes
+        return bboxes
     
-    with SmoothGradCAMpp(model, model.target_layer) as cam_extractor:
-        out = model(input_tensor.unsqueeze(0))
-        activation_map = cam_extractor(out.squeeze(0).argmax().item(), out)
-    
-    mask = to_pil_image(activation_map[0].squeeze(0), mode='F')
-    overlay = mask.resize((img.shape[2], img.shape[1]))
-    overlay = np.array(overlay)
-    
-    return overlay
+    def get_bbox(self, img):
+        input_tensor = normalize(resize(img, (224, 224)) / 255., [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).to('cuda')
+        
 
+        out = self.model(input_tensor.unsqueeze(0))
+        activation_map = self.cam_extractor(out.squeeze(0).argmax().item(), out)
+        
+        if isinstance(activation_map, list):
+            activation_map = activation_map[0]  # Assume the first element is the tensor we want
+    
+    # Ensure activation_map is a 4D tensor
+        if activation_map.dim() == 3:
+            activation_map = activation_map.unsqueeze(0)
+        elif activation_map.dim() == 2:
+            activation_map = activation_map.unsqueeze(0).unsqueeze(0)
+        
+        overlay = F.interpolate(activation_map, size=(img.shape[1], img.shape[2]), mode='bilinear', align_corners=False)
+        
+        
+        return overlay
 
 
 
@@ -244,6 +288,7 @@ class SemCutMix:
         
 
         # mixed_images = mixed_images * masks + images[rand_index] * (1 - masks2)
+        lams = []
         for i in range(batch_size):
             x1_1, y1_1, x2_1, y2_1 = bboxes1[i]
             x1_2, y1_2, x2_2, y2_2 = bboxes2[i]
@@ -256,10 +301,14 @@ class SemCutMix:
 
             # Place the content into bbox2 in image2
             mixed_images[rand_index[i], :, y1_2:y2_2, x1_2:x2_2] = content_bbox1_resized
-        
+
+            # Calculate lambda
+            lam = ((x2_1 - x1_1) * (y2_1 - y1_1)) / (224 * 224)
+            lams.append(lam)
+
         # self.save_mixed_images(mixed_images)
         # raise ValueError("Not implemented")
-        return mixed_images, (labels, labels[rand_index], self.threshold)
+        return mixed_images, (labels, labels[rand_index], lams)
     
     def save_mixed_images(self, mixed_images):
         for i, img in enumerate(mixed_images):
@@ -305,95 +354,10 @@ class SemCutMix:
         return min_yx[1].item(), min_yx[0].item(), max_yx[1].item(), max_yx[0].item()
 
 
-# class SemCutMix:
-#     def __init__(self, model, alpha, prob, threshold, dataset_name):
-#         self.model = initialize_model(model_name=model, dataset_name=dataset_name, use_cutmix=False).to('cuda')
-#         self.alpha = alpha
-#         self.prob = prob
-#         self.threshold = threshold
-#         self.cam_extractor = SmoothGradCAMpp(self.model, self.model.target_layer)
-
-    
-#     def __call__(self, batch):
-#         images, labels = batch
-#         if torch.rand(1).item() > self.prob:
-#             return images, labels
-#         batch_size = len(images)
-#         rand_index = torch.randperm(batch_size)
-
-#         mixed_images = images.clone()
-
-#         lams = []
-#         thresh = self.threshold
-#         for i in range(batch_size):
- 
-#             random_index = int(rand_index[i])
-#             bbox1 = self.get_bbox(images[i].clone(), thresh)
-#             bbox2 = self.get_bbox(images[random_index].clone(), thresh)
-
-#             x1, y1, x2, y2 = bbox1
-#             x1_2, y1_2, x2_2, y2_2 = bbox2
-            
-#             width, height = x2 - x1, y2 - y1
-#             width2, height2 = x2_2 - x1_2, y2_2 - y1_2
-
-#             mask = torch.ones_like(images[i])
-#             mask[:, y1:y2, x1:x2] = 0
-
-#             mixed_images[i] = mixed_images[i] * (1 - mask) + images[random_index] * mask
-
-#             # image =mixed_images[i].permute(1, 2, 0).cpu().numpy()
-#             # image = (image - np.min(image)) / (np.max(image) - np.min(image))
-#             # plt.imsave(f'./test/{i}.png', image)
-            
-#             bbox_area = (x2 - x1) * (y2 - y1)
-#             total_area = images[i].shape[1] * images[i].shape[2]
-#             lam = bbox_area / total_area
-#             # lams.append(lam)
-            
-#             # mixed_images[i] = lam * mixed_images[i] + (1 - lam) * images[rand_index[i]]
-
-#         return mixed_images, (labels, labels[rand_index], self.threshold)
-
-#     @staticmethod
-#     def get_bboxes(masks):
-#         batch_size = masks.shape[0]
-#         bboxes = []
-#         for i in range(batch_size):
-#             mask = masks[i, 0]
-#             indices = torch.nonzero(mask)
-#             if indices.numel() == 0:
-#                 bboxes.append((0, 0, mask.shape[1], mask.shape[0]))
-#             else:
-#                 min_xy = torch.min(indices, dim=0)[0]
-#                 max_xy = torch.max(indices, dim=0)[0]
-#                 bboxes.append((min_xy[1], min_xy[0], max_xy[1], max_xy[0]))
-#         return bboxes
-#     def get_bbox(self, img, threshold):
-#         input_tensor = normalize(resize(img, (224, 224)) / 255., [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).to('cuda')
-        
-#         out = self.model(input_tensor.unsqueeze(0))
-#         activation_map = self.cam_extractor(out.squeeze(0).argmax().item(), out)
-        
-#         mask = to_pil_image(activation_map[0].squeeze(0), mode='F')
-#         overlay = mask.resize((img.shape[2], img.shape[1]))
-#         overlay = np.array(overlay)
-#         overlay[overlay > threshold] = 1
-#         overlay[overlay <= threshold] = 0
-        
-#         indices = np.where(overlay == 1)
-#         if len(indices[0]) == 0 or len(indices[1]) == 0:
-#             return 0, 0, img.shape[2], img.shape[1]
-        
-#         min_y, min_x = np.min(indices, axis=1)
-#         max_y, max_x = np.max(indices, axis=1)
-        
-#         return min_x, min_y, max_x, max_y
-
 class SemCutMixLoader:
     def __init__(self, loader, model, alpha, prob, threshold, dataset_name):
         self.loader = loader
-        self.semcutmix = SemCutMix(model, alpha, prob, threshold, dataset_name)
+        self.semcutmix = SemMixUp(model, alpha, prob, threshold, dataset_name)
 
     def __iter__(self):
         for batch_idx, batch in enumerate(self.loader):

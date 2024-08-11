@@ -37,7 +37,7 @@ def train(model, train_loader, optimizer, criterion, device, use_cutmix, use_sem
             if isinstance(targets, tuple):
                 targets_a, targets_b, lam = targets
                 targets_a, targets_b = targets_a.to(device), targets_b.to(device)
-                # lam = np.mean(lam)
+                lam = np.mean(lam)
             else:
                 targets = targets.to(device)
         else:
@@ -121,7 +121,9 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            experiment_name = f"{model_name}_{dataset_name}_semcutmix_cutmix_transfer_camswap"
+            if model_name == 'resnet18' and dataset_name == 'cub200':
+                continue
+            experiment_name = f"{model_name}_{dataset_name}_test_semmixup"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
@@ -129,11 +131,11 @@ def main():
             val_dataset = DatasetFactory.get_dataset(dataset_name, train=False)
             num_classes = len(train_dataset.classes)
             if model_name in ['resnet18', 'vgg16']:
-                # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
-                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
+                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+                # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_64/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
             else:
-                # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
-                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+                # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_cutmix_b64_best.pth'
 
             if Config.USE_SEMCUTMIX:
                 print(f"Loading Pre Trained mode = {model_path}")
