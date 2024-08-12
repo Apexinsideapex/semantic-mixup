@@ -104,11 +104,11 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     # else:
     #     model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
     if model_name in ['resnet18', 'vgg16']:
-        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
     else:
-        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_cutmix_b64_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
+        # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_b64/best_models/{model_name}_{dataset_name}_new_cutmix_b64_best.pth'
 
     model.load_state_dict(torch.load(model_path))
     return model
@@ -151,7 +151,8 @@ class SemMixUp:
         # overlays = torch.tensor(overlays)
         # print(overlays)
         overlays = (overlays > 0.3).float()
-        overlays2 = 1 - overlays
+        # overlays = overlays.to('cpu')
+        # overlays2 = 1 - overlays
 
         # overlays.to('cuda')
         # overlays2.to('cuda')
@@ -159,7 +160,7 @@ class SemMixUp:
         # images.to('cuda')
         
 
-        mixed_images = mixed_images.to('cuda') * overlays.to('cuda') + images[rand_index].to('cuda') * overlays2.to('cuda')
+        mixed_images = mixed_images * overlays + images[rand_index] * (1 - overlays)
 
 
         # self.save_mixed_images(mixed_images)
@@ -200,7 +201,7 @@ class SemMixUp:
         overlay = F.interpolate(activation_map, size=(img.shape[1], img.shape[2]), mode='bilinear', align_corners=False)
         
         
-        return overlay
+        return overlay.to('cpu')
 
 
 

@@ -121,9 +121,11 @@ def main():
 
     for dataset_name in Config.DATASETS:
         for model_name in Config.MODELS:
-            if model_name == 'resnet18' and dataset_name == 'cub200':
-                continue
-            experiment_name = f"{model_name}_{dataset_name}_test_semmixup"
+            # if model_name == 'resnet18' and dataset_name in ['cub200', 'stanford_dogs']:
+            #     continue
+            # if model_name == 'vgg16' and dataset_name in ['cub290']:
+            #     continue
+            experiment_name = f"{model_name}_{dataset_name}_final_base_64"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
@@ -172,7 +174,8 @@ def main():
                 val_loss, val_acc = validate(model, val_loader, criterion, device)
 
                 print(f"Epoch {epoch+1}/{Config.EPOCHS} - Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%, Epoch Duration: {epoch_duration:.2f} seconds")
-
+                wandb.log({"epoch": epoch+1, "train_loss": train_loss, "train_acc": train_acc})
+                wandb.log({"epoch": epoch+1, "val_loss": val_loss, "val_acc": val_acc})
                 # Save the best model
                 if val_acc > best_val_acc:
                     best_val_acc = val_acc
