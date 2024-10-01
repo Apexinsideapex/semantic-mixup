@@ -125,7 +125,7 @@ def main():
             #     continue
             # if model_name == 'vgg16' and dataset_name in ['cub290']:
             #     continue
-            experiment_name = f"{model_name}_{dataset_name}_final_base_64"
+            experiment_name = f"{model_name}_{dataset_name}_final_semcutmix_64_cutmix_new"
             print(f"Running experiment: {experiment_name}")
             wandb.init(project=Config.WANDB_PROJECT, name=experiment_name)
 
@@ -133,7 +133,7 @@ def main():
             val_dataset = DatasetFactory.get_dataset(dataset_name, train=False)
             num_classes = len(train_dataset.classes)
             if model_name in ['resnet18', 'vgg16']:
-                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+                model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/final_experiments_cutmix_64/best_models/{model_name}_{dataset_name}_final_cutmix_64_best.pth'
                 # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/cutmix_models_64/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
             else:
                 model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'

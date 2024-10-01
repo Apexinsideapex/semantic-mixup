@@ -28,16 +28,33 @@ class CutMix(object):
         
         batch_size = len(images)
         rand_index = torch.randperm(batch_size)
+        # test_image = images[5].permute(1, 2, 0).cpu().numpy().copy()
+        # test_image = (test_image - np.min(test_image)) / (np.max(test_image) - np.min(test_image))
+        # rand_image = images[rand_index[5]].permute(1, 2, 0).cpu().numpy().copy()
+        # rand_image = (rand_image - np.min(rand_image)) / (np.max(rand_image) - np.min(rand_image))
+
 
         lam = np.random.beta(self.alpha, self.alpha)
         bbx1, bby1, bbx2, bby2 = self.rand_bbox(images.size(), lam)
         images[:, :, bbx1:bbx2, bby1:bby2] = images[rand_index, :, bbx1:bbx2, bby1:bby2]
         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (images.size()[-1] * images.size()[-2]))
 
-        for i in range(batch_size):
-            image = images[i].permute(1, 2, 0).cpu().numpy()
-            image = (image - np.min(image)) / (np.max(image) - np.min(image))
-            plt.imsave(f'./test/cutmix_{i}.png', image)
+        
+        # image = images[5].permute(1, 2, 0).cpu().numpy()
+        # image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        # fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+        # axes[0].imshow(test_image)
+        # axes[0].axis('off')
+        # axes[0].set_title('Test Image')
+        # axes[1].imshow(rand_image)
+        # axes[1].axis('off')
+        # axes[1].set_title('Random Image')
+        # axes[2].imshow(image)
+        # axes[2].axis('off')
+        # axes[2].set_title('CutMix Image')
+        # plt.savefig('cutmix_test_cifar.png')
+        # plt.show()
+        # raise ValueError("Not implemented")
 
         return images, (labels, labels[rand_index], lam)
     def rand_bbox(self, size, lam):
@@ -104,7 +121,7 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
     # else:
     #     model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models/best_models/{model_name}_{dataset_name}_best.pth'
     if model_name in ['resnet18', 'vgg16']:
-        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_64/best_models/{model_name}_{dataset_name}_base_64_best.pth'
+        model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/final_experiments_cutmix_64/best_models/{model_name}_{dataset_name}_final_cutmix_64_best.pth'
         # model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_cutmix/best_models/{model_name}_{dataset_name}_cutmix_best.pth'
     else:
         model_path = f'/home/lunet/cors13/Final_Diss/semantic-mixup/base_models_b64/best_models/{model_name}_{dataset_name}_new_b64_best.pth'
@@ -112,8 +129,6 @@ def initialize_model(model_name, dataset_name, use_cutmix=False):
 
     model.load_state_dict(torch.load(model_path))
     return model
-
-
 
 
 class SemMixUp:
@@ -141,27 +156,28 @@ class SemMixUp:
         
         # Get all bboxes for the batch at once
         if batch_idx not in self.cached_bboxes.keys():
-            # print(f"Generating bbox for {batch_idx}")
             overlays = self.get_batch_maps(batch_idx, images)[0]
         else:
-            # print(f"Not generating bbox for {batch_idx}")
             overlays = self.cached_bboxes[batch_idx][0]
 
-        # print(overlays)
-        # overlays = torch.tensor(overlays)
-        # print(overlays)
-        overlays = (overlays > 0.3).float()
-        # overlays = overlays.to('cpu')
-        # overlays2 = 1 - overlays
-
-        # overlays.to('cuda')
-        # overlays2.to('cuda')
-        # mixed_images.to('cuda')
-        # images.to('cuda')
+        # overlays = (overlays > self.threshold).float()
+        # print(overlays.shape)
+        # print(overlays[0][0].tolist())
+        # # Calculate the ratio of 1s for each overlay
+        # total_pixels = overlays.shape[2] * overlays.shape[3]  # Assuming overlays shape is (batch_size, 1, height, width)
+        # # Calculate the number of ones for each overlay
+        # num_ones = torch.sum(overlays.view(batch_size, -1), dim=1)
         
+        # Print the number of ones for each overlay
+        # print("Number of ones in each overlay:")
+        # for i, count in enumerate(num_ones):
+        #     print(f"Overlay {i}: {count.item()} ones")
+        # ratio_ones = num_ones / total_pixels
+        
+        # # Print the ratios for debugging
+        # print(f"Ratio of 1s in overlays: {ratio_ones}")
 
         mixed_images = mixed_images * overlays + images[rand_index] * (1 - overlays)
-
 
         # self.save_mixed_images(mixed_images)
         # raise ValueError("Not implemented")
@@ -297,10 +313,15 @@ class SemCutMix:
             # Extract content from bbox1 in image1
             content_bbox1 = images[i, :, y1_1:y2_1, x1_1:x2_1]
 
-            # Ensure the content fits into bbox2
-            content_bbox1_resized = torch.nn.functional.interpolate(content_bbox1.unsqueeze(0), size=(y2_2 - y1_2, x2_2 - x1_2), mode='bilinear', align_corners=False).squeeze(0)
+            target_size = (y2_2 - y1_2, x2_2 - x1_2)
 
-            # Place the content into bbox2 in image2
+    # Resize the content to fit bbox2 using bicubic interpolation
+            content_bbox1_resized = F.interpolate(content_bbox1.unsqueeze(0), size=target_size, mode='bicubic', align_corners=False).squeeze(0)
+
+            # Initialize the region in image2 corresponding to bbox2 to avoid overlaps
+            mixed_images[rand_index[i], :, y1_2:y2_2, x1_2:x2_2] = 0  # Set the region to zero (black) or some other background value
+
+            # Place the resized content into bbox2 in image2
             mixed_images[rand_index[i], :, y1_2:y2_2, x1_2:x2_2] = content_bbox1_resized
 
             # Calculate lambda
@@ -359,6 +380,7 @@ class SemCutMixLoader:
     def __init__(self, loader, model, alpha, prob, threshold, dataset_name):
         self.loader = loader
         self.semcutmix = SemMixUp(model, alpha, prob, threshold, dataset_name)
+        # self.semcutmix = SemCutMix(model, alpha, prob, threshold, dataset_name)
 
     def __iter__(self):
         for batch_idx, batch in enumerate(self.loader):

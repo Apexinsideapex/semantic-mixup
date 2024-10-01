@@ -11,9 +11,9 @@ class Config:
     NUM_WORKERS = 8
     
     # Model
-    MODELS = [ "resnet18", "vgg16"]
+    MODELS = ["resnet18", "vgg16"]
     # MODELS = ['efficientnetv2', 'resnet50']
-    DATASETS = [ "cub200", "stanford_dogs", "cifar10"]
+    DATASETS = [  "stanford_dogs", "cifar10"]
     # MODELS = ["resnet18"]
     # DATASETS = ["cub200"]
     # DATASETS = ["cifar10"]
@@ -27,18 +27,18 @@ class Config:
     WARM_UP_EPOCHS = 50
     
     # Logging
-    WANDB_PROJECT = "semantic-mixup"
+    WANDB_PROJECT = "semantic-mixup-final"
     LOG_INTERVAL = 10
 
     #Experiements
-    EXPERIMENT_DIR = "./final_experiments_base_64"
+    EXPERIMENT_DIR = "./final_experiments_semmix_64_cutmix"
 
     # Augmentation
     USE_CUTMIX = False
     CUTMIX_ALPHA = 1.0
     CUTMIX_PROB = 0.5
 
-    USE_SEMCUTMIX = False
+    USE_SEMCUTMIX = True
     SEMCUTMIX_ALPHA = 1.0
     SEMCUTMIX_PROB = 0.5
-    SEMCUTMIX_THRESHOLD = 0.7
+    SEMCUTMIX_THRESHOLD = 0.5
